@@ -38,24 +38,24 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         """
         response = await call_next(request)
         
-        # Content Security Policy - Previene XSS
+        # Content Security Policy - Más permisivo para desarrollo
         response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; "
-            "script-src 'self'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data: https:; "
-            "font-src 'self'; "
-            "connect-src 'self'; "
-            "frame-ancestors 'none';"
+            "default-src *; "
+            "script-src * 'unsafe-inline' 'unsafe-eval'; "
+            "style-src * 'unsafe-inline'; "
+            "img-src * data: blob:; "
+            "font-src *; "
+            "connect-src *; "
+            "frame-ancestors *;"
         )
         
-        # HTTP Strict Transport Security - Fuerza HTTPS
-        response.headers["Strict-Transport-Security"] = (
-            "max-age=31536000; includeSubDomains"
-        )
+        # No usar HSTS en desarrollo (solo para HTTPS)
+        # response.headers["Strict-Transport-Security"] = (
+        #     "max-age=31536000; includeSubDomains"
+        # )
         
-        # X-Frame-Options - Previene clickjacking
-        response.headers["X-Frame-Options"] = "DENY"
+        # X-Frame-Options - Más permisivo para desarrollo
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
         
         # X-Content-Type-Options - Previene MIME sniffing
         response.headers["X-Content-Type-Options"] = "nosniff"

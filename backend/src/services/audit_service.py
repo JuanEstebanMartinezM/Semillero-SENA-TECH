@@ -65,8 +65,7 @@ class AuditService:
             ip_address=ip_address,
             user_agent=user_agent,
             resource_type=resource_type,
-            resource_id=resource_id,
-            timestamp=datetime.utcnow()
+            resource_id=resource_id
         )
         
         self.db.add(audit_log)
