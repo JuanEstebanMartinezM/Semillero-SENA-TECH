@@ -18,6 +18,13 @@ from schemas.token import (
     RefreshTokenRequest,
     TokenResponse,
 )
+from schemas.task import (
+    TaskBase,
+    TaskCreate,
+    TaskUpdate,
+    TaskResponse,
+    TaskListResponse,
+)
 
 __all__ = [
     # User schemas
@@ -32,4 +39,10 @@ __all__ = [
     "TokenPayload",
     "RefreshTokenRequest",
     "TokenResponse",
+    # Task schemas
+    "TaskBase",
+    "TaskCreate",
+    "TaskUpdate",
+    "TaskResponse",
+    "TaskListResponse",
 ]
