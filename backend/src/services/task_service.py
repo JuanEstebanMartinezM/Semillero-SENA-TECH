@@ -17,6 +17,7 @@ from fastapi import HTTPException, status
 from repositories.task_repository import TaskRepository
 from schemas.task import TaskCreate, TaskUpdate, TaskResponse, TaskListResponse
 from models.task import Task, TaskStatus, TaskPriority
+from services.audit_service import AuditService
 
 
 class TaskService:
@@ -35,6 +36,7 @@ class TaskService:
             db: Sesión de base de datos
         """
         self.task_repo = TaskRepository(db)
+        self.audit_service = AuditService(db)
     
     def create_task(self, task_data: TaskCreate, user_id: int) -> Task:
         """
@@ -48,6 +50,10 @@ class TaskService:
             Tarea creada
         """
         task = self.task_repo.create(task_data, user_id)
+        
+        # Log de auditoría
+        self.audit_service.log_task_created(user_id, task.id, task.title)
+        
         return task
     
     def get_task_by_id(self, task_id: int, user_id: int) -> Task:
@@ -113,6 +119,10 @@ class TaskService:
         """
         task = self.get_task_by_id(task_id, user_id)
         updated_task = self.task_repo.update(task, task_data)
+        
+        # Log de auditoría
+        self.audit_service.log_task_updated(user_id, task.id, task.title)
+        
         return updated_task
     
     def delete_task(self, task_id: int, user_id: int) -> None:
@@ -129,7 +139,12 @@ class TaskService:
             HTTPException 404: Si la tarea no existe o no pertenece al usuario
         """
         task = self.get_task_by_id(task_id, user_id)
+        task_title = task.title  # Guardar título antes de eliminar
+        
         self.task_repo.delete(task)
+        
+        # Log de auditoría
+        self.audit_service.log_task_deleted(user_id, task_id, task_title)
     
     def mark_task_as_completed(self, task_id: int, user_id: int) -> Task:
         """
