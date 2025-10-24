@@ -21,6 +21,7 @@ from repositories.user_repository import UserRepository
 from schemas.user import UserCreate, UserLogin
 from schemas.token import Token
 from models.user import User
+from services.audit_service import AuditService
 
 
 class AuthService:
@@ -38,6 +39,7 @@ class AuthService:
             db: Sesión de base de datos
         """
         self.user_repo = UserRepository(db)
+        self.audit_service = AuditService(db)
     
     def register(self, user_data: UserCreate) -> User:
         """
@@ -74,12 +76,14 @@ class AuthService:
         
         return user
     
-    def login(self, credentials: UserLogin) -> Tuple[Token, User]:
+    def login(self, credentials: UserLogin, ip_address: str = "unknown", user_agent: str = "unknown") -> Tuple[Token, User]:
         """
         Autentica un usuario y genera tokens JWT.
         
         Args:
             credentials: Credenciales de login (username/email y password)
+            ip_address: Dirección IP del cliente
+            user_agent: User agent del navegador
             
         Returns:
             Tupla con (tokens JWT, usuario autenticado)
@@ -91,6 +95,13 @@ class AuthService:
         user = self.user_repo.get_by_email_or_username(credentials.username)
         
         if not user:
+            # Log de intento fallido
+            self.audit_service.log_login_failed(
+                credentials.username,
+                ip_address,
+                user_agent,
+                "Usuario no encontrado"
+            )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Credenciales inválidas"
@@ -98,6 +109,12 @@ class AuthService:
         
         # Verificar si la cuenta está bloqueada
         if self.user_repo.is_account_locked(user):
+            self.audit_service.log_login_failed(
+                credentials.username,
+                ip_address,
+                user_agent,
+                "Cuenta bloqueada"
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Cuenta bloqueada hasta {user.locked_until}. "
@@ -119,11 +136,26 @@ class AuthService:
                 )
                 self.user_repo.lock_account(user, locked_until)
                 
+                self.audit_service.log_login_failed(
+                    credentials.username,
+                    ip_address,
+                    user_agent,
+                    f"Cuenta bloqueada por {settings.account_lockout_minutes} minutos"
+                )
+                
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"Cuenta bloqueada por {settings.account_lockout_minutes} "
                            f"minutos debido a múltiples intentos fallidos."
                 )
+            
+            # Log de intento fallido
+            self.audit_service.log_login_failed(
+                credentials.username,
+                ip_address,
+                user_agent,
+                "Contraseña incorrecta"
+            )
             
             # Mostrar intentos restantes
             remaining_attempts = settings.max_login_attempts - user.failed_login_attempts
@@ -135,6 +167,12 @@ class AuthService:
         
         # Verificar que la cuenta esté activa
         if not user.is_active:
+            self.audit_service.log_login_failed(
+                credentials.username,
+                ip_address,
+                user_agent,
+                "Cuenta desactivada"
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Cuenta desactivada"
@@ -142,6 +180,9 @@ class AuthService:
         
         # Actualizar último login
         user = self.user_repo.update_last_login(user)
+        
+        # Log de login exitoso
+        self.audit_service.log_login_success(user, ip_address, user_agent)
         
         # Generar tokens
         tokens = self._generate_tokens(user)

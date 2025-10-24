@@ -8,7 +8,7 @@ Endpoints para:
 - Perfil del usuario actual
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 from db.base import get_db
@@ -63,6 +63,7 @@ def register(
     description="Autentica un usuario y genera tokens JWT (access y refresh)"
 )
 def login(
+    request: Request,
     credentials: UserLogin,
     db: Session = Depends(get_db)
 ) -> Token:
@@ -73,20 +74,27 @@ def login(
     - Máximo 5 intentos fallidos antes de bloqueo
     - Bloqueo de cuenta por 30 minutos tras exceder intentos
     - Tokens JWT con expiración (access: 30 min, refresh: 7 días)
+    - Logging de eventos de autenticación
     
     Args:
+        request: Request HTTP para obtener IP y user agent
         credentials: Email/username y contraseña
         db: Sesión de base de datos
         
     Returns:
-        Tokens de acceso y refresco
+        Tokens JWT (access_token, refresh_token)
         
     Raises:
-        HTTPException 401: Credenciales inválidas
-        HTTPException 403: Cuenta bloqueada o inactiva
+        HTTPException 401: Si las credenciales son inválidas
+        HTTPException 403: Si la cuenta está bloqueada o desactivada
     """
     auth_service = AuthService(db)
-    tokens, user = auth_service.login(credentials)
+    
+    # Obtener IP y user agent para auditoría
+    ip_address = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+    
+    tokens, user = auth_service.login(credentials, ip_address, user_agent)
     return tokens
 
 
