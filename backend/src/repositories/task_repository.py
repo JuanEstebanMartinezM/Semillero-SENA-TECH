@@ -5,11 +5,11 @@ Implementa el patrón Repository para separar la lógica de acceso a datos.
 Todas las queries SQL están encapsuladas aquí.
 """
 
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from datetime import datetime
 
 from sqlalchemy.orm import Session
-from sqlalchemy import and_
+from sqlalchemy import and_, or_, func
 
 from models.task import Task, TaskStatus, TaskPriority
 from schemas.task import TaskCreate, TaskUpdate
@@ -195,3 +195,74 @@ class TaskRepository:
         return self.db.query(Task).filter(
             and_(Task.user_id == user_id, Task.is_completed == False)
         ).count()
+    
+    def get_filtered(
+        self,
+        user_id: int,
+        status: Optional[TaskStatus] = None,
+        priority: Optional[TaskPriority] = None,
+        category: Optional[str] = None,
+        is_completed: Optional[bool] = None,
+        search: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 10,
+        sort_by: str = "created_at",
+        order: str = "desc"
+    ) -> Tuple[List[Task], int]:
+        """
+        Obtiene tareas filtradas y paginadas.
+        
+        Args:
+            user_id: ID del usuario
+            status: Filtrar por estado
+            priority: Filtrar por prioridad
+            category: Filtrar por categoría
+            is_completed: Filtrar por completado
+            search: Buscar en título y descripción
+            skip: Número de registros a saltar
+            limit: Límite de registros
+            sort_by: Campo para ordenar
+            order: Orden ascendente o descendente
+            
+        Returns:
+            Tupla con lista de tareas y total de registros
+        """
+        query = self.db.query(Task).filter(Task.user_id == user_id)
+        
+        # Aplicar filtros
+        if status is not None:
+            query = query.filter(Task.status == status)
+        
+        if priority is not None:
+            query = query.filter(Task.priority == priority)
+        
+        if category is not None:
+            query = query.filter(Task.category == category)
+        
+        if is_completed is not None:
+            query = query.filter(Task.is_completed == is_completed)
+        
+        # Búsqueda en título y descripción
+        if search:
+            search_pattern = f"%{search}%"
+            query = query.filter(
+                or_(
+                    Task.title.ilike(search_pattern),
+                    Task.description.ilike(search_pattern)
+                )
+            )
+        
+        # Contar total antes de paginar
+        total = query.count()
+        
+        # Ordenamiento
+        sort_column = getattr(Task, sort_by, Task.created_at)
+        if order.lower() == "asc":
+            query = query.order_by(sort_column.asc())
+        else:
+            query = query.order_by(sort_column.desc())
+        
+        # Paginación
+        tasks = query.offset(skip).limit(limit).all()
+        
+        return tasks, total

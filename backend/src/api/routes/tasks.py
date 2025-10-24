@@ -3,23 +3,24 @@ Rutas para gestión de tareas.
 
 Endpoints CRUD completos con protección IDOR:
 - Crear tarea
-- Listar tareas del usuario
+- Listar tareas del usuario (con filtros y paginación)
 - Obtener tarea por ID
 - Actualizar tarea
 - Eliminar tarea
 - Marcar como completada
 """
 
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from db.base import get_db
 from services.task_service import TaskService
-from schemas.task import TaskCreate, TaskUpdate, TaskResponse
+from schemas.task import TaskCreate, TaskUpdate, TaskResponse, TaskListResponse
 from api.dependencies import get_current_user
 from models.user import User
+from models.task import TaskStatus, TaskPriority
 
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
@@ -61,29 +62,70 @@ def create_task(
 
 @router.get(
     "",
-    response_model=List[TaskResponse],
-    summary="Listar tareas",
-    description="Obtiene todas las tareas del usuario autenticado"
+    response_model=TaskListResponse,
+    summary="Listar tareas con filtros y paginación",
+    description="Obtiene tareas del usuario con filtros, búsqueda y paginación"
 )
 def get_all_tasks(
+    status_filter: Optional[TaskStatus] = Query(None, description="Filtrar por estado"),
+    priority: Optional[TaskPriority] = Query(None, description="Filtrar por prioridad"),
+    category: Optional[str] = Query(None, description="Filtrar por categoría"),
+    is_completed: Optional[bool] = Query(None, description="Filtrar por completado"),
+    search: Optional[str] = Query(None, description="Buscar en título/descripción"),
+    page: int = Query(1, ge=1, description="Número de página"),
+    page_size: int = Query(10, ge=1, le=100, description="Tamaño de página"),
+    sort_by: str = Query("created_at", description="Campo para ordenar"),
+    order: str = Query("desc", regex="^(asc|desc)$", description="Orden asc/desc"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
-) -> List[TaskResponse]:
+) -> TaskListResponse:
     """
-    Lista todas las tareas del usuario autenticado.
+    Lista tareas del usuario con filtros y paginación.
     
-    Las tareas se ordenan por fecha de creación (más recientes primero).
+    **Filtros disponibles:**
+    - status: pending, in_progress, completed
+    - priority: 1 (Low), 2 (Medium), 3 (High)
+    - category: Categoría personalizada
+    - is_completed: true/false
+    - search: Busca en título y descripción
+    
+    **Paginación:**
+    - page: Número de página (mínimo 1)
+    - page_size: Tamaño de página (1-100, default 10)
+    
+    **Ordenamiento:**
+    - sort_by: created_at, due_date, priority, title, etc.
+    - order: asc (ascendente) o desc (descendente)
     
     Args:
-        current_user: Usuario autenticado (inyectado)
+        status_filter: Filtro por estado
+        priority: Filtro por prioridad
+        category: Filtro por categoría
+        is_completed: Filtro por completado
+        search: Búsqueda de texto
+        page: Número de página
+        page_size: Registros por página
+        sort_by: Campo de ordenamiento
+        order: Dirección del ordenamiento
+        current_user: Usuario autenticado
         db: Sesión de base de datos
         
     Returns:
-        Lista de tareas del usuario
+        Respuesta con lista de tareas y metadata de paginación
     """
     task_service = TaskService(db)
-    tasks = task_service.get_all_tasks(current_user.id)
-    return [TaskResponse.model_validate(task) for task in tasks]
+    return task_service.get_filtered_tasks(
+        user_id=current_user.id,
+        status_filter=status_filter,
+        priority=priority,
+        category=category,
+        is_completed=is_completed,
+        search=search,
+        page=page,
+        page_size=page_size,
+        sort_by=sort_by,
+        order=order
+    )
 
 
 @router.get(
