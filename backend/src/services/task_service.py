@@ -5,16 +5,18 @@ Contiene toda la lógica de negocio relacionada con tareas:
 - CRUD completo con validación de ownership
 - Validaciones de negocio
 - Protección IDOR
+- Filtros, búsqueda y paginación
 """
 
-from typing import List
+from typing import List, Optional
+from math import ceil
 
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
 from repositories.task_repository import TaskRepository
-from schemas.task import TaskCreate, TaskUpdate, TaskResponse
-from models.task import Task
+from schemas.task import TaskCreate, TaskUpdate, TaskResponse, TaskListResponse
+from models.task import Task, TaskStatus, TaskPriority
 
 
 class TaskService:
@@ -154,3 +156,70 @@ class TaskService:
         
         completed_task = self.task_repo.mark_as_completed(task)
         return completed_task
+    
+    def get_filtered_tasks(
+        self,
+        user_id: int,
+        status_filter: Optional[TaskStatus] = None,
+        priority: Optional[TaskPriority] = None,
+        category: Optional[str] = None,
+        is_completed: Optional[bool] = None,
+        search: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 10,
+        sort_by: str = "created_at",
+        order: str = "desc"
+    ) -> TaskListResponse:
+        """
+        Obtiene tareas filtradas con paginación.
+        
+        Args:
+            user_id: ID del usuario
+            status_filter: Filtrar por estado
+            priority: Filtrar por prioridad
+            category: Filtrar por categoría
+            is_completed: Filtrar por completado
+            search: Buscar en título/descripción
+            page: Número de página (1-indexed)
+            page_size: Tamaño de página
+            sort_by: Campo para ordenar
+            order: Orden (asc/desc)
+            
+        Returns:
+            Respuesta con tareas y metadata de paginación
+        """
+        # Validar página y tamaño
+        if page < 1:
+            page = 1
+        if page_size < 1:
+            page_size = 10
+        if page_size > 100:
+            page_size = 100
+        
+        # Calcular skip
+        skip = (page - 1) * page_size
+        
+        # Obtener tareas filtradas
+        tasks, total = self.task_repo.get_filtered(
+            user_id=user_id,
+            status=status_filter,
+            priority=priority,
+            category=category,
+            is_completed=is_completed,
+            search=search,
+            skip=skip,
+            limit=page_size,
+            sort_by=sort_by,
+            order=order
+        )
+        
+        # Calcular total de páginas
+        total_pages = ceil(total / page_size) if total > 0 else 1
+        
+        return TaskListResponse(
+            items=[TaskResponse.model_validate(task) for task in tasks],
+            total=total,
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages
+        )
