@@ -756,7 +756,32 @@ http://localhost:3000
 VITE_API_URL=http://localhost:8000
 ```
 
-### Scripts Disponibles
+### 🚀 Despliegue
+
+### Docker
+
+El proyecto incluye configuración para desplegar con Docker y Nginx.
+
+1. Construir la imagen:
+```bash
+docker build -t davivienda-frontend .
+```
+
+2. Ejecutar el contenedor:
+```bash
+docker run -p 3000:80 davivienda-frontend
+```
+
+3. La aplicación estará disponible en `http://localhost:3000`
+
+### Desarrollo Local
+
+```bash
+npm install
+npm run dev
+```
+
+## 🧪 Scripts Disponibles
 
 ```bash
 # Desarrollo

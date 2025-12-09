@@ -61,6 +61,16 @@ class TaskBase(BaseModel):
             raise ValueError("El título no puede estar vacío")
         return v
     
+
+
+
+class TaskCreate(TaskBase):
+    """
+    Schema para crear una nueva tarea.
+    
+    Hereda todos los campos de TaskBase.
+    """
+    
     @field_validator("due_date")
     @classmethod
     def validate_due_date(cls, v: Optional[datetime]) -> Optional[datetime]:
@@ -79,15 +89,6 @@ class TaskBase(BaseModel):
         if v and v < datetime.utcnow():
             raise ValueError("La fecha límite debe ser futura")
         return v
-
-
-class TaskCreate(TaskBase):
-    """
-    Schema para crear una nueva tarea.
-    
-    Hereda todos los campos de TaskBase.
-    """
-    pass
 
 
 class TaskUpdate(BaseModel):

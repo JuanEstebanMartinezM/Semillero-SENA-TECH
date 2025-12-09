@@ -150,7 +150,7 @@ export default function TasksPage() {
                 onChange={(e) =>
                   setFilters({
                     ...filters,
-                    status: e.target.value ? (e.target.value as typeof TaskStatus[keyof typeof TaskStatus]) : undefined,
+                    status_filter: e.target.value ? (e.target.value as typeof TaskStatus[keyof typeof TaskStatus]) : undefined,
                     page: 1,
                   })
                 }

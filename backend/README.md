@@ -520,6 +520,32 @@ ENVIRONMENT=development
 
 ---
 
+## 🚀 Despliegue
+
+### Docker (Recomendado)
+
+El proyecto incluye configuración para Docker y Docker Compose.
+
+1. Construir y levantar los servicios:
+```bash
+docker-compose up -d --build
+```
+
+2. La API estará disponible en `http://localhost:8000`
+3. La documentación interactiva en `http://localhost:8000/docs`
+
+### Ejecución Manual
+
+Para ejecutar el backend manualmente, asegúrate de usar el script proporcionado para configurar correctamente el PYTHONPATH:
+
+```bash
+# Dar permisos de ejecución (solo la primera vez)
+chmod +x start.sh
+
+# Iniciar el servidor
+./start.sh
+```
+
 ## 🧪 Testing
 
 ### Ejecutar Tests

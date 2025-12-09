@@ -91,7 +91,7 @@ export interface TaskListResponse {
 }
 
 export interface TaskFilters {
-  status?: TaskStatus;
+  status_filter?: TaskStatus;  // Cambiado: status → status_filter (match con backend)
   priority?: TaskPriority;
   category?: string;
   is_completed?: boolean;

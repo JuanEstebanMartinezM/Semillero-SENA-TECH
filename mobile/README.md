@@ -166,7 +166,47 @@ Aplicación móvil nativa (iOS/Android) de gestión de tareas construida con **R
 
 ---
 
-## 📁 Estructura de Carpetas
+## 🚀 Construcción y Despliegue
+
+### EAS Build (Recomendado)
+
+Este proyecto está configurado para usar [EAS Build](https://docs.expo.dev/build/introduction/).
+
+1. Instalar EAS CLI:
+```bash
+npm install -g eas-cli
+```
+
+2. Login en Expo:
+```bash
+eas login
+```
+
+3. Configurar el proyecto (solo primera vez):
+```bash
+eas build:configure
+```
+
+4. Construir la aplicación:
+```bash
+# Para Android (APK)
+eas build -p android --profile preview
+
+# Para iOS (IPA - requiere cuenta Apple Developer)
+eas build -p ios --profile preview
+```
+
+### Ejecución Local
+
+```bash
+# Iniciar servidor de desarrollo
+npx expo start
+
+# Resetear caché si hay problemas
+npx expo start -c
+```
+
+## 📱 Estructura del Proyecto
 
 ```
 mobile/
