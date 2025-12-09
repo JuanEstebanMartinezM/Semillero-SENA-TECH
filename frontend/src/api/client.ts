@@ -10,7 +10,7 @@
 
 import axios from 'axios';
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { handleApiError } from '../utils/errorHandler';
+
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
