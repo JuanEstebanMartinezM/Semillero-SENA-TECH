@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     
     # CORS
     cors_origins: str = Field(
-        default="http://localhost:3000", 
+        default="http://localhost:3000,https://semillero-sena-tech.vercel.app,https://davivienda-frontend.vercel.app", 
         alias="CORS_ORIGINS"
     )
     
