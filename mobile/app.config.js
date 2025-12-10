@@ -27,7 +27,7 @@ module.exports = {
       favicon: "./assets/favicon.png"
     },
     extra: {
-      apiUrl: process.env.API_URL || "http://192.168.1.4:8000"
+      apiUrl: process.env.API_URL || "https://davivienda-backend.onrender.com"
     }
   }
 };

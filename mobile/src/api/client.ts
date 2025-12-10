@@ -15,7 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
 // Obtener API_URL de las variables de entorno de Expo
-const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://192.168.1.4:8000';
+const API_URL = Constants.expoConfig?.extra?.apiUrl || 'https://davivienda-backend.onrender.com';
 
 // Log para debugging
 console.log('🌐 API_URL configurada:', API_URL);
@@ -33,11 +33,11 @@ const api = axios.create({
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     const token = await AsyncStorage.getItem('access_token');
-    
+
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     return config;
   },
   (error) => {
@@ -57,7 +57,7 @@ api.interceptors.response.use(
 
       try {
         const refreshToken = await AsyncStorage.getItem('refresh_token');
-        
+
         if (!refreshToken) {
           // No hay refresh token, es normal si no ha iniciado sesión
           // Solo limpiamos tokens sin mostrar error
